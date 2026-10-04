@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功課template</title>
+    <!-- Ionic CDN CSS -->
+    <meta name="viewport"
+        content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css" />
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
+
+</head>
+
+<body>
+    <ion-app>
+        <ion-header>
+            <ion-toolbar color="primary">
+                <ion-title>功課template</ion-title>
+            </ion-toolbar>
+        </ion-header>
+
+        <ion-content class="ion-padding">
+            <ion-item>
+                <ion-input id="titleInput" label="書名" placeholder="請輸入書名" fill="outline"></ion-input>
+                <!--
+                <ion-label position="floating">書名</ion-label>
+                <ion-input id="titleInput"></ion-input>
+                -->
+
+            </ion-item>
+      
+            <ion-item>
+                <ion-label>已讀完</ion-label>
+                <ion-checkbox id="doneCheckbox" slot="end"></ion-checkbox>
+            </ion-item>
+            <ion-button id="addBtn" expand="block">新增</ion-button>
+            <ion-list id="bookList"></ion-list>
+        </ion-content>
+
+        <script>
+            console.log("功課template");
+            let books = [];
+            function loadData() {
+                const saved = localStorage.getItem('books');
+                if (saved) { books = JSON.parse(saved); }
+                renderList();
+            }
+            function saveData() {
+                localStorage.setItem('books', JSON.stringify(books));
+            }
+            function renderList() {
+                const container = document.getElementById('bookList');
+                if (books.length === 0) {
+                    container.innerHTML = '<ion-item><ion-label>目前沒有書籍</ion-label></ion-item>';
+                    return;
+                }
+                container.innerHTML = books.map((item, index) => `
+              <ion-item>
+                <ion-label>${item.title}（${item.done ? "已讀完" : "未讀"}）</ion-label>
+                <ion-button slot="end" color="danger" class="delete-btn" data-index="${index}">刪除</ion-button>
+              </ion-item>
+            `).join('');
+            }
+            document.getElementById('addBtn').addEventListener('click', () => {
+                const title = document.getElementById('titleInput').value;
+                const done = document.getElementById('doneCheckbox').checked;
+                if (!title || title.trim() === "") {
+                    alert("請輸入書名");
+                    return;
+                  }
+                books.push({ title: title, done: done });
+                document.getElementById('titleInput').value = "";
+                document.getElementById('doneCheckbox').checked = false;
+                saveData();
+                renderList();
+            });
+            document.getElementById('bookList').addEventListener('click', (event) => {
+                if (event.target.classList.contains('delete-btn')) {
+                    const index = event.target.getAttribute('data-index');
+                    books.splice(index, 1);
+                    saveData();
+                    renderList();
+                }
+            });
+            loadData();
+        </script type="module">
+
+
+</body>
+
+</html>
