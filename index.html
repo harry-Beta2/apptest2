@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="viewport-fit=cover, width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>茶記點餐系統</title>
+
+    <!-- 引入 Ionic CDN 資源 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css">
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
+    <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
+</head>
+
+<body>
+    <ion-app>
+        <ion-tabs>
+            <!-- 頁面 1：菜單頁 -->
+            <ion-tab tab="menu">
+                <ion-header translucent="true">
+                    <ion-toolbar color="warning">
+                        <ion-title>茶餐廳菜單</ion-title>
+                    </ion-toolbar>
+                </ion-header>
+                <ion-content class="ion-padding" fullscreen="true">
+                    <ion-list id="menuList"></ion-list>
+                </ion-content>
+            </ion-tab>
+
+            <!-- 頁面 2：購物車頁 -->
+            <ion-tab tab="cart">
+                <ion-header translucent="true">
+                    <ion-toolbar color="success">
+                        <ion-title>我的購物籃</ion-title>
+                    </ion-toolbar>
+                </ion-header>
+                <ion-content class="ion-padding" fullscreen="true">
+                    <ion-list id="cartList"></ion-list>
+                </ion-content>
+
+                <ion-footer>
+                    <ion-toolbar color="light">
+                        <ion-title slot="start">總計: $<span id="totalPrice">0</span></ion-title>
+                        <ion-button slot="end" color="success" id="checkoutBtn">結帳下單</ion-button>
+                    </ion-toolbar>
+                </ion-footer>
+            </ion-tab>
+
+            <!-- 底部導航 -->
+            <ion-tab-bar slot="bottom" color="dark">
+                <ion-tab-button tab="menu">
+                    <ion-icon name="restaurant-outline"></ion-icon>
+                    <ion-label>菜單</ion-label>
+                </ion-tab-button>
+                <ion-tab-button tab="cart">
+                    <ion-icon name="cart-outline"></ion-icon>
+                    <ion-label>購物籃 <ion-badge id="cartBadge" color="danger">0</ion-badge></ion-label>
+                </ion-tab-button>
+            </ion-tab-bar>
+        </ion-tabs>
+    </ion-app>
+
+    <script>
+        // 模擬菜單資料庫（換成了極度穩定的圖片連結）
+               const menuData = [
+            { id: 1, name: "凍奶茶", price: 22, category: "飲品", img: "./images/milktea.jpg" },
+            { id: 2, name: "菠蘿油", price: 18, category: "小食", img: "./images/pineapple.jpg" },
+            { id: 3, name: "干炒牛河", price: 58, category: "主食", img: "./images/beef.jpg" },
+            { id: 4, name: "西多士", price: 28, category: "小食", img: "./images/toast.jpg" }
+        ];
+        let cart = [];
+
+        function loadData() {
+            const saved = localStorage.getItem('teaRestaurantCart');
+            if (saved) { cart = JSON.parse(saved); }
+            renderMenu();
+            renderCart();
+        }
+
+        function saveData() {
+            localStorage.setItem('teaRestaurantCart', JSON.stringify(cart));
+        }
+
+        // 渲染菜單
+        function renderMenu() {
+            const list = document.getElementById('menuList');
+            list.innerHTML = menuData.map(item => `
+                <ion-item>
+                    <!-- 幫你加上了固定大小和防裁切屬性的圖片框 -->
+                    <ion-thumbnail slot="start" style="width: 64px; height: 64px; --border-radius: 8px;">
+                        <img src="${item.img}" alt="food" style="width: 100%; height: 100%; object-fit: cover;" />
+                    </ion-thumbnail>
+
+                    <ion-label>
+                        <h2>${item.name}</h2>
+                        <p>${item.category} - $${item.price}</p>
+                    </ion-label>
+                    <ion-button slot="end" color="primary" class="add-btn" data-id="${item.id}">加入</ion-button>
+                </ion-item>
+            `).join('');
+        }
+
+        // 渲染購物車
+        function renderCart() {
+            const list = document.getElementById('cartList');
+            let total = 0;
+
+            if (cart.length === 0) {
+                list.innerHTML = `<ion-item><ion-label class="ion-text-center">購物籃是空的，快去點餐吧！</ion-label></ion-item>`;
+                document.getElementById('totalPrice').innerText = "0";
+                document.getElementById('cartBadge').innerText = "0";
+                return;
+            }
+
+            list.innerHTML = cart.map((item, index) => {
+                total += item.price * item.qty;
+                return `
+                <ion-item>
+                    <ion-label>
+                        <h2>${item.name}</h2>
+                        <p>單價: $${item.price} | 小計: $${item.price * item.qty}</p>
+                    </ion-label>
+                    <div slot="end" style="display: flex; align-items: center;">
+                        <ion-button fill="clear" class="minus-btn" data-index="${index}">-</ion-button>
+                        <span style="font-weight: bold; margin: 0 10px;">${item.qty}</span>
+                        <ion-button fill="clear" class="plus-btn" data-index="${index}">+</ion-button>
+                        <ion-button color="danger" class="delete-btn" data-index="${index}">刪除</ion-button>
+                    </div>
+                </ion-item>
+                `}).join('');
+
+            document.getElementById('totalPrice').innerText = total;
+            document.getElementById('cartBadge').innerText = cart.reduce((sum, item) => sum + item.qty, 0);
+        }
+
+        // 事件監聽
+        document.body.addEventListener('click', (event) => {
+            if (event.target.classList.contains('add-btn')) {
+                const id = Number(event.target.getAttribute('data-id'));
+                const food = menuData.find(f => f.id === id);
+                const existing = cart.find(c => c.id === id);
+                if (existing) {
+                    existing.qty++;
+                } else {
+                    cart.push({ ...food, qty: 1 });
+                }
+                saveData(); renderCart();
+            }
+
+            if (event.target.classList.contains('plus-btn')) {
+                const index = event.target.getAttribute('data-index');
+                cart[index].qty++;
+                saveData(); renderCart();
+            }
+
+            if (event.target.classList.contains('minus-btn')) {
+                const index = event.target.getAttribute('data-index');
+                cart[index].qty--;
+                if (cart[index].qty <= 0) {
+                    cart.splice(index, 1);
+                }
+                saveData(); renderCart();
+            }
+
+            if (event.target.classList.contains('delete-btn')) {
+                const index = event.target.getAttribute('data-index');
+                const alert = document.createElement('ion-alert');
+                alert.header = '確認刪除';
+                alert.message = '確定要移除這項餐點嗎？';
+                alert.buttons = [
+                    { text: '取消', role: 'cancel' },
+                    { text: '刪除', handler: () => {
+                        cart.splice(index, 1);
+                        saveData(); renderCart();
+                    }}
+                ];
+                document.body.appendChild(alert);
+                alert.present();
+            }
+        });
+
+        // 結帳按鈕
+        document.getElementById('checkoutBtn').addEventListener('click', async () => {
+            if (cart.length === 0) {
+                const alert = document.createElement('ion-alert');
+                alert.header = '提示'; alert.message = '購物車是空的，請先點餐！'; alert.buttons = ['知道了'];
+                document.body.appendChild(alert); await alert.present(); return;
+            }
+
+            const total = document.getElementById('totalPrice').innerText;
+            const alert = document.createElement('ion-alert');
+            alert.header = '下單成功'; alert.message = `總計 $${total}，廚房正在為您準備！`; alert.buttons = ['確認'];
+            document.body.appendChild(alert); await alert.present();
+
+            cart = [];
+            saveData();
+            renderCart();
+        });
+
+        // 啟動程式
+        loadData();
+    </script>
+</body>
+
+</html>
